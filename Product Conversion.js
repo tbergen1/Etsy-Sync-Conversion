@@ -1,5 +1,7 @@
 servantProductConversion = function(syncProduct) {
 
+    Sync.data.tagArray = [];
+
     Servant.instantiate('product', function(error, response) {
         if (error) console.log(error);
         else Sync.data.product = response;
@@ -27,16 +29,21 @@ servantProductConversion = function(syncProduct) {
         if (syncProduct.category_path.length > 1) Sync.data.product.subcategory = syncProduct.category_path[syncProduct.category_path.length - 1];
 
         // Allows up to 30 tags to be recorded
-        if (syncProduct.tags.length) Sync.data.product.tags = Sync.data.product.tags.concat(syncProduct.tags.slice(0, 29));
+        if (syncProduct.tags.length > 30) var truncTags = syncProduct.tags.slice(0, 29);
+        else var truncTags = syncProduct.tags;
+
+        for (i = 0; i < truncTags.length; i++) {
+            tagCheck(truncTags[i]);
+        }
 
         // Records currency code
         if (syncProduct.currency_code) Sync.data.product.currency = syncProduct.currency_code;
 
         // Records whether the servantProduct is in stock. In stock is not an Etsy property
-        if (syncProduct.quantity > 0) Sync.data.product.in_stock = true;
+        if (syncProduct.quantity = 0) Sync.data.product.in_stock = true;
 
         // Records the audience of the Etsy servantProduct. Etsy only allows one recipient/audience to be designated
-        if (syncProduct.recipient) Sync.data.product.audience[0] = syncProduct.recipient;
+        if (syncProduct.recipient) Sync.data.product.audience[0] = syncProduct.recipient[0];
 
     } catch (err) {
 
@@ -50,6 +57,62 @@ servantProductConversion = function(syncProduct) {
         });
     });
 };
+
+// Check if a tag already exists within Servant.  If not, create a new record.
+tagCheck = function(tag) {
+
+    var criteria = {
+        query: {
+            tag: tag
+        },
+        sort: {},
+        page: 1
+    };
+
+    Servant.queryArchetypes(Sync.data.access_token, servantID, 'tag', criteria, function(error, response) {
+        console.log(error, response);
+
+        if (response.length) Sync.data.tagArray.push(response._id);
+        else {
+            tagSave(tag, function() {
+                tagCheck(tag);
+            });
+        }
+    });
+};
+
+// Save a tag as a new tag record within Servant
+tagSave = function(tag, callback) {
+
+    Servant.instantiate('tag', function(error, response) {
+        if (error) console.log(error);
+        else Sync.data.newTag = response;
+    });
+
+    try {
+
+        if (tag.length < 140) Sync.data.newTag.tag = tag;
+        else console.log("Tag length too long - not recorded");
+
+    } catch (err) {
+
+        console.log(err);
+    }
+
+    Servant.validate('tag', Sync.data.newTag, function(error, tag) {
+
+        Servant.saveArchetype(Sync.data.access_token, servantID, 'tag', tag, function(error, response) {
+            console.log(error, response);
+        });
+    });
+
+    if (callback) return callback();
+};
+
+
+
+
+
 
 
 var test_object = {};
