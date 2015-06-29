@@ -1,4 +1,4 @@
-servantProductConversion = function(syncProduct) {
+servantProductConversion = function(syncProduct, syncImages) {
 
     Sync.data.tagArray = [];
 
@@ -60,7 +60,20 @@ servantProductConversion = function(syncProduct) {
         if (syncProduct.quantity = 0) Sync.data.product.in_stock = true;
 
         // Records the audience of the Etsy servantProduct. Etsy only allows one recipient/audience to be designated
-        if (syncProduct.recipient) Sync.data.product.audience[0] = syncProduct.recipient[0];
+        if (syncProduct.recipient) {
+
+            async.eachLimit(syncProduct.recipient[0], 1, tagCheck, function(err)) {
+                console.log(err);
+            }
+
+            Sync.data.product.audience = Sync.data.tagArray;
+        }
+
+        // Checks if there are images for the listing.  Images are accessed through an independent route
+        if (syncImages.length) {
+
+            //not sure what property to check against within out own database. URL?
+        }
 
     } catch (err) {
 
