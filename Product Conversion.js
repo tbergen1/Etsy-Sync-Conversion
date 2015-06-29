@@ -23,18 +23,35 @@ servantProductConversion = function(syncProduct) {
         if (syncProduct.price) Sync.data.product.price = syncProduct.price * 100;
 
         // Picks the broadest Etsy category the servantProduct is classified under
-        if (syncProduct.category_path.length) Sync.data.product.category = syncProduct.category_path[0];
+        if (syncProduct.category_path.length) {
+
+            async.eachLimit(syncProduct.category_path[0], 1, tagCheck, function(err)) {
+                console.log(err);
+            }
+        }
+
+        Sync.data.product.category = Sync.data.tagArray;
 
         // Picks the most specific category the servantProduct is classified under
-        if (syncProduct.category_path.length > 1) Sync.data.product.subcategory = syncProduct.category_path[syncProduct.category_path.length - 1];
+        if (syncProduct.category_path.length > 1) {
+
+            async.eachLimit(syncProduct.category_path[syncProduct.category_path.length - 1], 1, tagCheck, function(err)) {
+                console.log(err);
+            }
+
+            Sync.data.product.subcategory = Sync.data.tagArray;
+        }
 
         // Allows up to 30 tags to be recorded
         if (syncProduct.tags.length > 30) var truncTags = syncProduct.tags.slice(0, 29);
         else var truncTags = syncProduct.tags;
 
-        for (i = 0; i < truncTags.length; i++) {
-            tagCheck(truncTags[i]);
+        async.eachLimit(truncTags, 5, tagCheck, function(err)) {
+            console.log(err);
         }
+
+        // Save tag IDs to instantiated product record
+        Sync.data.product.tags = Sync.data.product.tags.concat(Sync.data.tagArray);
 
         // Records currency code
         if (syncProduct.currency_code) Sync.data.product.currency = syncProduct.currency_code;
